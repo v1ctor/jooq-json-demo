@@ -1,0 +1,122 @@
+plugins {
+    id 'com.avast.gradle.docker-compose' version '0.16.4'
+    id 'org.flywaydb.flyway' version '7.11.1'
+    id 'nu.studer.jooq' version '7.1.1'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.10'
+}
+
+ext {
+    jooq_version = '3.16.6'
+    flyway_version = '7.7.3'
+    mysql_version = '8.0.28'
+}
+
+group 'ai.vektor.database'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+compileKotlin { kotlinOptions.jvmTarget = "16" }
+compileTestKotlin { kotlinOptions.jvmTarget = "16" }
+compileTestJava {
+    sourceCompatibility = 16
+    targetCompatibility = 16
+}
+compileJava {
+    sourceCompatibility = 16
+    targetCompatibility = 16
+}
+
+dependencies {
+    api "org.flywaydb:flyway-core:$flyway_version"
+    api "org.jooq:jooq:$jooq_version"
+    implementation "org.jooq:jooq-codegen:$jooq_version"
+    implementation "mysql:mysql-connector-java:$mysql_version"
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.3'
+
+    api "org.jooq:jooq:$jooq_version"
+    api "org.jooq:jooq-kotlin:$jooq_version"
+
+    jooqGenerator "mysql:mysql-connector-java:$mysql_version"
+}
+
+
+flyway {
+    url = "${sql_db_url}"
+    user = "${sql_db_user}"
+    password = "${sql_db_password}"
+}
+
+jooq {
+    version = jooq_version
+
+    configurations {
+        main {
+            generateSchemaSourceOnCompilation = false
+            generationTool {
+                jdbc {
+                    driver = 'com.mysql.cj.jdbc.Driver'
+                    url = "${sql_db_url}"
+                    user = "${sql_db_user}"
+                    password = "${sql_db_password}"
+                }
+                generator {
+                    name = 'org.jooq.codegen.KotlinGenerator'
+                    database {
+                        name = 'org.jooq.meta.mysql.MySQLDatabase'
+                        excludes = "flyway_schema_history"
+                        inputSchema = "${sql_db_schema}"
+                    }
+                    generate {
+                        relations = true
+                        deprecated = false
+                        interfaces = false
+                        records = true
+                        pojos = true
+                        pojosEqualsAndHashCode = true
+                        daos = true
+                    }
+                    target {
+                        packageName = 'org.buldakov.database.generated'
+                        directory = 'src/main/kotlin'
+                    }
+                    strategy {
+                        name = null
+                        matchers {
+                            tables {
+                                table {
+                                    tableClass {
+                                        expression = '\$0Table'
+                                    }
+                                    daoClass {
+                                        expression = '\$0JooqDao'
+                                    }
+                                    recordClass {
+                                        expression = '\$0Record'
+                                    }
+                                    interfaceClass {
+                                        expression = 'I\$0'
+                                    }
+                                    pojoClass {
+                                        expression = '\$0Pojo'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+generateJooq.inputs.dir("${projectDir}/src/main/resources/db/migration")
+generateJooq.outputs.cacheIf { true }
+
+flywayMigrate.dependsOn composeUp
+generateJooq.dependsOn flywayMigrate
+generateJooq.finalizedBy composeDownForced

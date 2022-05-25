@@ -1,0 +1,1 @@
+/Users/bool/projects/jooq-experiment/build/classes/kotlin/main/org/buldakov/AppKt.class:/Users/bool/projects/jooq-experiment/build/classes/kotlin/main/org/buldakov/JsonPayload.class:/Users/bool/projects/jooq-experiment/build/classes/kotlin/main/org/buldakov/Rule.class

@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  mysql:
+    #    image: arm64v8/mysql:8.0-oracle
+    image: mysql:8.0-oracle
+    command: --lower_case_table_names=2 --init-file /data/application/init.sql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    volumes:
+      - ./init.sql:/data/application/init.sql
+    ports:
+      - "3308:3306"
